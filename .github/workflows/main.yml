@@ -1,0 +1,39 @@
+name: Deploy to Supabase
+
+on:
+  push:
+    branches:
+      - main  # or your default branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install & Build
+        run: |
+          npm install
+          npm run build
+
+      - name: Create Bundle
+        # Important: We 'cd' into dist so that index.html is at the ROOT of the zip.
+        run: |
+          cd dist
+          zip -r ../bundle.zip .
+          cd ..
+
+      - name: Upload to Supabase Edge Function
+        run: |
+          curl -i -X POST "${{ secrets.DEPLOY_URL }}" \
+            -H "x-app-id: ${{ secrets.APP_ID }}" \
+            -H "x-deploy-token: ${{ secrets.DEPLOY_TOKEN }}" \
+            -F "file=@bundle.zip"
